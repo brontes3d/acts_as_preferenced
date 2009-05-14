@@ -7,6 +7,46 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
     @user = users(:josh)
   end
   
+  def test_should_not_set_preference_until_user_is_saved
+    user = User.new
+    user.set_preference({:simple => 'damn right'})
+    assert user.preferences[0].new_record?, "expected first pref to be new record but got #{user.preferences.inspect}"
+    assert_raises(ActiveRecord::RecordInvalid){
+      user.save!
+    }
+    assert user.preferences[0].new_record?, "expected first pref to be new record but got #{user.preferences.inspect}"
+    user.login = "bob"
+    user.save!
+    assert !user.preferences[0].new_record?, "expected first pref to be saved now but got #{user.preferences.inspect}"
+    user.set_preference({:complex => 'no'})
+    assert user.preferences[1].new_record?, "expected second pref to be new record but got #{user.preferences.inspect}"
+    user.reload
+    assert_equal(1, user.preferences.size, "Expected to have only 1 pref after reload but got #{user.preferences.inspect}")
+    user.set_preference({:complex => 'yes'})
+    assert user.preferences[1].new_record?, "expected second pref to be new record but got #{user.preferences.inspect}"
+    user.login = ""
+    assert_raises(ActiveRecord::RecordInvalid){
+      user.save!
+    }
+    assert user.preferences[1].new_record?, "expected second pref to be new record but got #{user.preferences.inspect}"
+    user.reload
+    assert_equal(1, user.preferences.size, "Expected to have only 1 pref after reload but got #{user.preferences.inspect}")
+    user.set_preference({:complex => 'not so much'})
+    user.login = "bob"
+    assert user.preferences[1].new_record?, "expected second pref to be new record but got #{user.preferences.inspect}"
+    user.save!
+    assert !user.preferences[1].new_record?, "expected second pref to be saved now but got #{user.preferences.inspect}"
+    user.set_preference({:simple => 'a little bit'})
+    assert user.preferences[0].changed?, "expected first pref to NOT be saved yet but got #{user.preferences.inspect}"
+    user.reload
+    assert_equal("damn right", user.preferences[0].value, "expected value of first pref to be reverted but got #{user.preferences.inspect}")
+    user.set_preference({:simple => 'a little bit'})
+    user.save!
+    assert !user.preferences[0].changed?, "expected first pref to be saved but got #{user.preferences.inspect}"
+    user.reload
+    assert_equal("a little bit", user.preferences[0].value, "expected value of first pref to be updated but got #{user.preferences.inspect}")
+  end
+  
   def test_blank_values_should_be_set_to_nil
     p = @user.set_preference({'simple' => ''})
     assert_nil @user.get_preference('simple')
@@ -24,6 +64,8 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   def test_should_create_preference_from_hash
     assert_difference Preference, :count do
       p = @user.set_preference({:simple => 'damn right'})
+      assert p.new_record?, "#{p.errors.full_messages.to_sentence}"
+      @user.save!
       assert !p.new_record?, "#{p.errors.full_messages.to_sentence}"
     end
   end
@@ -32,12 +74,14 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
     assert_difference Preference, :count, 4 do
       p = @user.set_preference({:simple => 'damn right', :easy => 'as pie', :better => 'than chocolate', :you => 'like'})
       assert_equal 4, p.length
+      @user.save!
     end
   end
   
   def test_should_only_create_hash_based_preferences_one_level_deep
     assert_difference Preference, :count, 2 do
       p = @user.set_preference({:complex => {:something => {:crazy => 'nested'}}, :simple => 'test'})
+      @user.save!
     end
   end
   
@@ -51,20 +95,18 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   def test_should_create_a_text_based_preference
     assert_difference Preference, :count do
       p = @user.set_preference('send_me_spam',true)
+      assert p.new_record?, "#{p.errors.full_messages.to_sentence}"
+      @user.save!
       assert !p.new_record?, "#{p.errors.full_messages.to_sentence}"
     end
   end
-  
-  def test_should_create_a_class_based_preference
-    assert_difference Preference, :count do
-      p = @user.set_preference('show_stats',true, User)
-      assert !p.new_record?, "#{p.errors.full_messages.to_sentence}"
-    end
-  end
-  
+    
   def test_should_create_an_association_based_preference
     assert_difference Preference, :count do
-      p = @user.set_preference('monitor_profile_changes', true, users(:aaron))
+      aaron = users(:aaron)
+      p = aaron.set_preference('monitor_profile_changes', true)
+      assert p.new_record?, "#{p.errors.full_messages.to_sentence}"
+      aaron.save!
       assert !p.new_record?, "#{p.errors.full_messages.to_sentence}"
     end
   end
@@ -78,10 +120,14 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   
   def test_should_change_value_of_existing_preference
     assert_difference Preference, :count do
-      @user.set_preference('best_guess', 'horse', users(:aaron))
+      aaron = users(:aaron)
+      aaron.set_preference('best_guess', 'horse')
+      aaron.save!
     end
     assert_no_difference Preference, :count do
-      p = @user.set_preference('best_guess', 'unicorn', users(:aaron))
+      aaron = users(:aaron)
+      p = aaron.set_preference('best_guess', 'unicorn')
+      aaron.save!
       assert_equal 'unicorn', p.value 
     end
   end
@@ -89,24 +135,22 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   def test_should_not_overwrite_preferences_within_other_scopes
     assert_difference Preference, :count do
       @user.set_preference('scope test', 'one')
+      @user.save!
     end
     assert_difference Preference, :count do
-      @user.set_preference('scope test', 'two', User)
-    end
-    assert_difference Preference, :count do
-      @user.set_preference('scope test', 'three', users(:aaron))
+      users(:aaron).set_preference('scope test', 'three')
+      users(:aaron).save!
     end
     assert_equal 'one',   @user.get_preference('scope test')
-    assert_equal 'two',   @user.get_preference('scope test', User)
-    assert_equal 'three', @user.get_preference('scope test', users(:aaron))
+    assert_equal 'three', users(:aaron).get_preference('scope test')
   end
   
   def test_should_not_allow_duplicate_preferences_within_preferred_scope_even_when_created_directly
     assert_difference Preference, :count do
-      p = Preference.create(:preferred => users(:josh), :preferrer => users(:josh), :name => 'dupe', :value => true)
+      p = Preference.create(:preferrer => users(:josh), :name => 'dupe', :value => true)
     end
     assert_no_difference Preference, :count do
-      p = Preference.create(:preferred => users(:josh), :preferrer => users(:josh), :name => 'dupe', :value => true)
+      p = Preference.create(:preferrer => users(:josh), :name => 'dupe', :value => true)
       assert p.value
     end
   end
@@ -116,16 +160,19 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   end
   
   def test_should_get_existing_preference_value_by_name_and_object
-    assert_equal 'weekly', @user.get_preference('watch', users(:aaron))
+    assert_equal 'weekly', users(:aaron).get_preference('watch')
   end
   
   def test_should_get_existing_preference_value_by_name_and_class
-    assert_equal true, @user.get_preference('hidden', User)
+    assert_equal true, @user.get_preference('hidden')
   end
   
   def test_should_require_name
     assert_no_difference Preference, :count do
-      p = @user.set_preference(nil, 'ponies', users(:aaron))
+      p = users(:aaron).set_preference(nil, 'ponies')
+      assert_raises(ActiveRecord::RecordInvalid){
+        p.save!        
+      }
       assert p.errors.on(:name), "name should have been required"
     end
   end
@@ -140,6 +187,7 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   def test_should_provide_dynamic_methods_for_setting_string_preferences
     assert_difference Preference, :count do
       @user.email_notification_preference = true
+      @user.save!
     end
   end
   

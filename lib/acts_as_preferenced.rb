@@ -12,19 +12,11 @@ module ActsAsPreferenced
       return if self.included_modules.include?(ActsAsPreferenced::InstanceMethods)
       
       # associated preferences
-      has_many :preferences, :dependent => :destroy, :as => :preferrer do
-        # provides a way to get all preferences scoped to a specific object
-        def for(obj)
-          if obj.is_a? Class
-            find :all, :conditions => { :preferred_type => obj.to_s, :preferred_id => nil }        
-          else
-            find :all, :conditions => { :preferred_type => obj.class.to_s, :preferred_id => obj.id }
-          end
-        end
-      end
+      has_many :preferences, :dependent => :destroy, :as => :preferrer, :autosave => true
 
       # and finally our lovely instance methods
       include ActsAsPreferenced::InstanceMethods
+
     end
   end
   
@@ -33,25 +25,24 @@ module ActsAsPreferenced
     # Set a preference within the context of this user
     # obj can be an object or class and name must be a string
     # you may additionally pass a hash to create several preferences at once
-    def set_preference(name, value=nil, obj=self)
+    def set_preference(name, value=nil)
       value = nil if value.blank?
       if name.is_a? Hash
         pref, prefs = nil, []
-        name.keys.each{|key| prefs << pref = set_preference(key.to_s, name[key], obj) } and return prefs.size > 1 ? prefs : pref
+        name.keys.each{|key| prefs << pref = self.set_preference(key.to_s, name[key]) } and return prefs.size > 1 ? prefs : pref
       end
-      if pref = preferences.for(obj).find{|p| p.name == name }
-        pref.update_attribute(:value, value)
-      elsif obj.is_a? Class
-        pref = preferences.create( :preferred_type => obj.to_s, :name => name, :value => value )
+      if pref = self.preferences.detect{|p| p.name == name.to_s }
+        pref.value = value
       else
-        pref = preferences.create( :preferred => obj, :name => name, :value => value )
+        pref = Preference.new(:name => name, :value => value)
+        self.preferences.target << pref
       end
       pref
     end
   
     # Returns selected preference value
-    def get_preference(name, obj=self)
-      (x = preferences.for(obj).find{|p| p.name == name.to_s }).nil? ? nil : x.value
+    def get_preference(name)
+      (x = self.preferences.detect{|p| p.name == name.to_s }).nil? ? nil : x.value
     end
   
   protected

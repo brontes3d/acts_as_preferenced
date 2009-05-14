@@ -49,26 +49,11 @@ Lets create an array preference...
 Create several preferences from a hash...
 
   current_user.set_preference( {:tall => true, :big => 'smile', :even => {:nested => 'works'}} )
-  
-Creating a relational preference...
+    
+Retrieving all preferences for user...
 
-  current_user.set_preference('ignore', true, lame_user)
+  current_user.preferences
   
-Retrieving all preferences for a specific object...
-
-  current_user.preferences.for(lame_user)
-  
-Setting a class based preference...
-
-  current_user.has_preference('skip', true, UserNotifier)
-  
-Getting a specific preference for a specific class
-
-  current_user.get_preference('skip', UserNotifer)
-  
-Getting all preferences for a specific class
-
-  current_user.preferences.for(UserNotifier)
 
 
 == Extended DSL

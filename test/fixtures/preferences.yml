@@ -2,8 +2,6 @@ josh_work_order_assignment_notification:
   id: 1
   preferrer_type: User
   preferrer_id: 3
-  preferred_type: User
-  preferred_id: 3
   name: work_order_assignment_notification
   value: "--- true\n"
 
@@ -11,17 +9,13 @@ josh_work_order_approval_notification:
   id: 2
   preferrer_type: User
   preferrer_id: 3
-  preferred_type: User
-  preferred_id: 3
   name: work_order_approval_notification
   value: "--- false\n"
 
-josh_watch_arron:
+arron_watch:
   id: 3
   preferrer_type: User
-  preferrer_id: 3
-  preferred_type: User
-  preferred_id: 2
+  preferrer_id: 2
   name: watch
   value: "--- weekly\n"
   
@@ -29,6 +23,5 @@ josh_hidden:
   id: 4
   preferrer_type: User
   preferrer_id: 3
-  preferred_type: User
   name: hidden
   value: "--- true\n"
