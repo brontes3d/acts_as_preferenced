@@ -1,9 +1,9 @@
-class Preference < ActiveRecord::Base
+class Preference < ActiveRecord::Base  
+  is_preference_model
   
-  belongs_to :preferrer, :polymorphic => true
+  preference_for(User) do
+    language
+    # language(:options => ["English", "French"])
+  end
   
-  serialize :value
-  validates_length_of :name, :within => 1..128
-  validates_uniqueness_of :name, :on => :create, :scope => [ :preferrer_id, :preferrer_type ]
-
 end

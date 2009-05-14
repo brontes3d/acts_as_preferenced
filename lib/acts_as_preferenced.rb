@@ -7,6 +7,16 @@ module ActsAsPreferenced
   end
   
   module ClassMethods
+    def is_preference_model
+      belongs_to :preferrer, :polymorphic => true
+
+      serialize :value
+      validates_length_of :name, :within => 1..128
+      validates_uniqueness_of :name, :on => :create, :scope => [ :preferrer_id, :preferrer_type ]
+      
+      extend ActsAsPreferenced::IsPreferenceClassMethods
+      
+    end
     def acts_as_preferenced(options = {})
       # don't allow multiple calls
       return if self.included_modules.include?(ActsAsPreferenced::InstanceMethods)
@@ -18,6 +28,36 @@ module ActsAsPreferenced
       include ActsAsPreferenced::InstanceMethods
 
     end
+  end
+  
+  module IsPreferenceClassMethods
+    
+    class PreferenceDefiner
+      def initialize(for_model)
+        @for_model = for_model
+      end
+      def method_missing(symbol, *args)
+        method_to_define = "#{symbol}_preference"
+        @for_model.class_eval do
+          define_method(method_to_define) do
+            get_preference(symbol)
+          end
+          define_method("#{method_to_define}=") do |value|
+            set_preference(symbol, value)
+          end
+        end
+      end
+    end
+    
+    def preference_for(*models, &block)
+      models.each do |model|
+        unless model.included_modules.include?(ActsAsPreferenced::InstanceMethods)
+          raise ArgumentError, "Can't define structure of preferences for #{model} because it does not 'acts_as_preferenced' "
+        end
+        PreferenceDefiner.new(model).instance_eval(&block)
+      end
+    end
+    
   end
   
   module InstanceMethods
@@ -34,7 +74,7 @@ module ActsAsPreferenced
       if pref = self.preferences.detect{|p| p.name == name.to_s }
         pref.value = value
       else
-        pref = Preference.new(:name => name, :value => value)
+        pref = Preference.new(:name => name.to_s, :value => value)
         self.preferences.target << pref
       end
       pref

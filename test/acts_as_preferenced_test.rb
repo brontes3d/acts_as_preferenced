@@ -7,6 +7,17 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
     @user = users(:josh)
   end
   
+  def test_set_language
+    u = User.new
+    u.attributes = {:login => "zinadine", :language_preference => "French"}
+    u.save!
+    # u.language_preference = "German"
+    # assert_raises(ActiveRecord::RecordInvalid){
+    #   u.save!
+    # }
+    # puts e.errors.inspect
+  end
+  
   def test_should_not_set_preference_until_user_is_saved
     user = User.new
     user.set_preference({:simple => 'damn right'})
