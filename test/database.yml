@@ -1,9 +1,9 @@
 sqlite:
   :adapter: sqlite
-  :dbfile: acts_as_preferenced.sqlite.db
+  :dbfile: ":memory:"
 sqlite3:
   :adapter: sqlite3
-  :dbfile: acts_as_preferenced.sqlite3.db
+  :dbfile: ":memory:"
 postgresql:
   :adapter: postgresql
   :username: postgres

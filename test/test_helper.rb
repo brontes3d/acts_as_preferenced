@@ -1,5 +1,3 @@
-require File.expand_path(File.dirname(__FILE__) + "/test_helper")
-
 $:.unshift(File.dirname(__FILE__) + '/../lib')
 RAILS_ROOT = File.dirname(__FILE__)
 
@@ -12,41 +10,23 @@ require 'active_record/fixtures'
 #require 'active_support/binding_of_caller'
 
 ActiveRecord::Base.configurations['test'] = YAML::load(IO.read(File.dirname(__FILE__) + '/database.yml'))
-ActiveRecord::Base.logger = Logger.new(File.dirname(__FILE__) + "/debug.log")
 ActiveRecord::Base.establish_connection(ActiveRecord::Base.configurations['test'][ENV['DB'] || 'sqlite3'])
 
 require "#{File.dirname(__FILE__)}/../init"
 load(File.dirname(__FILE__) + "/schema.rb") if File.exist?(File.dirname(__FILE__) + "/schema.rb")
 
-Test::Unit::TestCase.fixture_path = File.dirname(__FILE__) + "/fixtures/"
-$LOAD_PATH.unshift(Test::Unit::TestCase.fixture_path)
+# ActiveSupport::TestCase.fixture_path = File.dirname(__FILE__) + "/fixtures/"
+# $LOAD_PATH.unshift(Test::Unit::TestCase.fixture_path)
 
-class Test::Unit::TestCase #:nodoc:
-  def create_fixtures(*table_names)
-    if block_given?
-      Fixtures.create_fixtures(Test::Unit::TestCase.fixture_path, table_names) { yield }
-    else
-      Fixtures.create_fixtures(Test::Unit::TestCase.fixture_path, table_names)
-    end
-  end
+require File.dirname(__FILE__) + '/fixtures/user.rb'
+require File.dirname(__FILE__) + '/fixtures/preference.rb'
 
-  # Turn off transactional fixtures if you're working with MyISAM tables in MySQL
-  self.use_transactional_fixtures = true
+ActiveSupport::TestCase.class_eval do #:nodoc:
+  include ActiveRecord::TestFixtures
   
-  # Instantiated fixtures are slow, but give you @david where you otherwise would need people(:david)
-  self.use_instantiated_fixtures  = false
+  self.fixture_path = File.dirname(__FILE__) + "/fixtures/"
+  self.use_instantiated_fixtures  = true
 
-  # Add more helper methods to be used by all tests here...
-
-  # http://project.ioni.st/post/217#post-217
-  #
-  #  def test_new_publication
-  #    assert_difference(Publication, :count) do
-  #      post :create, :publication => {...}
-  #      # ...
-  #    end
-  #  end
-  # 
   def assert_difference(object, method = nil, difference = 1)
     initial_value = object.send(method)
     yield
