@@ -26,7 +26,7 @@ module ActsAsPreferenced
 
       # and finally our lovely instance methods
       include ActsAsPreferenced::InstanceMethods
-
+      Preference rescue nil
     end
   end
   
@@ -62,6 +62,10 @@ module ActsAsPreferenced
             end
             @for_model.class_eval do
               validates_inclusion_of "#{symbol}_preference", options_to_validation
+            end
+          elsif opts[:allow_nil] == false
+            @for_model.class_eval do
+              validates_presence_of "#{symbol}_preference"
             end
           end
         end
