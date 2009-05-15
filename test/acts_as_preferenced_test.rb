@@ -9,18 +9,33 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
   
   def test_set_language
     u = User.new
-    u.attributes = {:login => "zinadine", :language_preference => "French"}
+    u.attributes = {:login => "zinadine", :language_preference => "en_US"}
     u.save!
-    # u.language_preference = "German"
-    # assert_raises(ActiveRecord::RecordInvalid){
-    #   u.save!
-    # }
-    # puts e.errors.inspect
+    u.language_preference = "German"
+    assert_equal({"en_US" => "English - U.S.A.","fr_FR" => "Francais - Le France","en_FR" => "English - France"}, 
+                 User.language_preference_options)
+    assert_raises(ActiveRecord::RecordInvalid){
+      u.save!
+    }
+    assert_equal("is not included in the list", u.errors.on(:language_preference))
+    u.language_preference = ""
+    assert_raises(ActiveRecord::RecordInvalid){
+      u.save!
+    }
+    assert_equal("is not included in the list", u.errors.on(:language_preference))
+    u.language_preference = "fr_FR"
+    u.favorite_color_preference = "Beige"
+    assert_raises(ActiveRecord::RecordInvalid){
+      u.save!
+    }
+    assert_equal("is not included in the list", u.errors.on(:favorite_color_preference))
+    u.favorite_color_preference = "Green"
+    u.save!    
   end
   
   def test_should_not_set_preference_until_user_is_saved
     user = User.new
-    user.set_preference({:simple => 'damn right'})
+    user.set_preference({:language => 'en_US'})
     assert user.preferences[0].new_record?, "expected first pref to be new record but got #{user.preferences.inspect}"
     assert_raises(ActiveRecord::RecordInvalid){
       user.save!
@@ -47,15 +62,15 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
     assert user.preferences[1].new_record?, "expected second pref to be new record but got #{user.preferences.inspect}"
     user.save!
     assert !user.preferences[1].new_record?, "expected second pref to be saved now but got #{user.preferences.inspect}"
-    user.set_preference({:simple => 'a little bit'})
+    user.set_preference({:language => 'en_FR'})
     assert user.preferences[0].changed?, "expected first pref to NOT be saved yet but got #{user.preferences.inspect}"
     user.reload
-    assert_equal("damn right", user.preferences[0].value, "expected value of first pref to be reverted but got #{user.preferences.inspect}")
-    user.set_preference({:simple => 'a little bit'})
+    assert_equal("en_US", user.preferences[0].value, "expected value of first pref to be reverted but got #{user.preferences.inspect}")
+    user.set_preference({:language => 'en_FR'})
     user.save!
     assert !user.preferences[0].changed?, "expected first pref to be saved but got #{user.preferences.inspect}"
     user.reload
-    assert_equal("a little bit", user.preferences[0].value, "expected value of first pref to be updated but got #{user.preferences.inspect}")
+    assert_equal("en_FR", user.preferences[0].value, "expected value of first pref to be updated but got #{user.preferences.inspect}")
   end
   
   def test_blank_values_should_be_set_to_nil

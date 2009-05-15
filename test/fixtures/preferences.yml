@@ -25,3 +25,15 @@ josh_hidden:
   preferrer_id: 3
   name: hidden
   value: "--- true\n"
+  
+josh_lang:
+  preferrer_type: User
+  preferrer_id: 3
+  name: language
+  value: "--- en_US\n"
+
+arron_lang:
+  preferrer_type: User
+  preferrer_id: 2
+  name: language
+  value: "--- en_US\n"

@@ -1,7 +1,7 @@
 module ActsAsPreferenced
   
   PREFERENCE_REGEX = /(\w+)_preference([=]?)$/
-
+  
   def self.included(base) # :nodoc:
      base.extend ClassMethods
   end
@@ -33,17 +33,36 @@ module ActsAsPreferenced
   module IsPreferenceClassMethods
     
     class PreferenceDefiner
+      class H
+        def self.add_method(to_model, method_name, &block)
+          to_model.class_eval{ define_method(method_name, &block) }
+        end
+        def self.add_class_method(to_model, method_name, &block)
+          to_model.class_eval{ class << self; self end }.send(:define_method, method_name, &block)
+        end
+      end
+      
       def initialize(for_model)
         @for_model = for_model
       end
       def method_missing(symbol, *args)
-        method_to_define = "#{symbol}_preference"
-        @for_model.class_eval do
-          define_method(method_to_define) do
-            get_preference(symbol)
-          end
-          define_method("#{method_to_define}=") do |value|
-            set_preference(symbol, value)
+        H.add_method(@for_model, "#{symbol}_preference") do
+          get_preference(symbol)
+        end
+        H.add_method(@for_model, "#{symbol}_preference=") do |value|
+          set_preference(symbol, value)
+        end
+        if opts = args[0]
+          if options = opts[:options]
+            H.add_class_method(@for_model, "#{symbol}_preference_options"){ options }
+            options_to_validation = {}
+            options_to_validation[:in] = @for_model.send("#{symbol}_preference_options")
+            if opts[:allow_nil]
+              options_to_validation[:allow_nil] = true
+            end
+            @for_model.class_eval do
+              validates_inclusion_of "#{symbol}_preference", options_to_validation
+            end
           end
         end
       end
