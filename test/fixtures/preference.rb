@@ -6,6 +6,7 @@ class Preference < ActiveRecord::Base
           "fr_FR" => "Francais - Le France",
           "en_FR" => "English - France"})
     favorite_color(:options => ["Red","Green","Blue"], :allow_nil => true)
+    meal_choice(:options => ["Chicken", "Seafood", "Vegetarian"], :default => "Chicken")
   end
   
 end

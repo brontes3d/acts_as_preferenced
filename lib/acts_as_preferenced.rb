@@ -57,11 +57,16 @@ module ActsAsPreferenced
             H.add_class_method(@for_model, "#{symbol}_preference_options"){ options }
             options_to_validation = {}
             options_to_validation[:in] = @for_model.send("#{symbol}_preference_options")
-            if opts[:allow_nil]
+            if opts[:allow_nil] || opts[:default]
               options_to_validation[:allow_nil] = true
             end
             @for_model.class_eval do
               validates_inclusion_of "#{symbol}_preference", options_to_validation
+            end
+            if default_choice = opts[:default]
+              H.add_method(@for_model, "#{symbol}_preference") do
+                get_preference(symbol) || default_choice
+              end
             end
           elsif opts[:allow_nil] == false
             @for_model.class_eval do

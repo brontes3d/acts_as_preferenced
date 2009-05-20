@@ -7,6 +7,16 @@ class ActsAsPreferencedTest < ActiveSupport::TestCase
     @user = users(:josh)
   end
   
+  def test_default
+    u = User.new(:login => "zinadine", :language_preference => "en_US")
+    assert_equal("Chicken", u.meal_choice_preference)
+    u.meal_choice_preference = "Seafood"
+    assert_equal("Seafood", u.meal_choice_preference)
+    u.save!
+    u.reload
+    assert_equal("Seafood", u.meal_choice_preference)
+  end
+  
   def test_set_language
     u = User.new
     u.attributes = {:login => "zinadine", :language_preference => "en_US"}
