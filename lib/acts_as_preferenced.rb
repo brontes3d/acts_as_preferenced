@@ -52,6 +52,10 @@ module ActsAsPreferenced
         H.add_method(@for_model, "#{symbol}_preference=") do |value|
           set_preference(symbol, value)
         end
+        H.add_class_method(@for_model, "find_all_by_#{symbol}_preference") do |value|
+          find(:all, :include => ['preferences'],
+                     :conditions => ["preferences.name = ? AND preferences.value = ?", symbol.to_s, value])
+        end
         if opts = args[0]
           if default_choice = opts[:default]
             H.add_method(@for_model, "#{symbol}_preference") do
